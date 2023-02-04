@@ -26,7 +26,7 @@ def active_requests(client: Client) -> list[str]:
 
     request = client.payment.get_charge_payments()
     for request in requests:
-      requests.append(request)
+        requests.append(request)
 
     return requests
 
