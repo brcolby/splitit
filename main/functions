@@ -1,5 +1,6 @@
 from venmo_api import Client
 
+#------------TOKEN/CLIENT GENERATION------------
 #requests token from api
 def get_token(username: str, password: str) -> str:
     access_token = Client.get_access_token(
@@ -12,28 +13,137 @@ def get_token(username: str, password: str) -> str:
 def get_client(token) -> Client:
     return Client(access_token=token)
 
-#get id of username from api
-def get_id(client: Client, username: str) -> str:
-    return client.user.get_user_by_username(username)
+#------------API CLASS----------------
 
-#use api to perform venmo request
-def request(client: Client, amt: float, disc: str, user: str):
-    client.payment.request_money(amt, disc, user)
+class API: 
+    def __init__(self, access_token: str) -> None:
+        self.access_token = access_token
+        self.client = get_client(self.access_token)
 
-#returns list of active requests
-def active_requests(client: Client) -> list[str]:
-    requests = []
+    #get id of username from api
+    def get_id(self, username: str) -> str:
+        return self.client.user.get_user_by_username(username)
 
-    request = client.payment.get_charge_payments()
-    for request in requests:
-        requests.append(request)
+    #use api to perform venmo request
+    def request(self, amt: float, disc: str, user: str):
+        self.client.payment.request_money(amt, disc, user)
 
-    return requests
+    #returns list of active requests
+    def active_requests(self) -> list[str]:
+        requests = []
 
-#checks if request is pending
-def is_request_pending(requests: list[str], index: int) -> bool:
-    return 'status=PaymentStatus.PENDING' in requests[int]
+        request = self.client.payment.get_charge_payments()
+        for request in requests:
+            requests.append(request)
 
-#checks if user hash is in a request
-def is_from_user(requests: list[str], index: int, user_hash: int) -> bool:
-    return user_hash in requests[index]
+        return requests
+
+    #checks if request is pending
+    def is_request_pending(requests: list[str], index: int) -> bool:
+        return 'status=PaymentStatus.PENDING' in requests[int]
+
+    #checks if user hash is in a request
+    def is_from_user(requests: list[str], index: int, user_hash: int) -> bool:
+        return user_hash in requests[index]
+
+#---------------DATA CLASSES-----------------
+
+class Payer:
+    def __init__(self, venmo_username) -> None:
+        self.user = venmo_username
+
+    def get_username(self)-> str:
+        return self.user
+    
+class Item:
+    def __init__(self, tag: str, payers: list[Payer], cost: float) -> None:
+        self.tag = tag
+        self.payers = payers
+        self.cost = cost
+
+    def add_payer(self, payer: Payer):
+        self.payers.append(payer)
+
+    def get_payers(self)-> list[Payer]:
+        return self.payers
+    
+    def get_tag(self)-> str:
+        return self.tag
+    
+    def get_cost(self)-> float:
+        return self.cost
+
+class Bucket:
+    def __init__(self, items: list[Item], name: str) -> None:
+        self.items = items
+        self.name = name
+
+    def add_item(self, item: Item):
+        self.items.append(item)
+
+    def get_items(self)-> list[Item]:
+        return self.items
+    
+    def get_name(self)-> str:
+        return self.name
+
+class Data:
+    def __init__(self) -> None:
+        self.buckets = []
+    
+    def add_bucket(self, items: list[Item], name: str):
+        bucket = Bucket(items, name)
+        self.buckets.append(bucket)
+
+    def add_item(self, bucket: Bucket, tag: str, payers: list[Payer], cost: float):
+        item = Item(tag, payers, cost)
+        bucket.add_item(item)
+
+    def add_payer(self, item: Item, venmo_username: str):
+        payer = Payer(venmo_username)
+        item.add_payer(payer)
+
+    def get_buckets(self) -> list[Bucket]:
+        return self.buckets
+    
+    def get_bucket_items(self, bucket: Bucket) -> list[Item]:
+        return bucket.get_items()
+    
+    def get_item_payers(self, item: Item) -> list[Payer]:
+        return item.get_payers()
+
+#---------------DATA STORAGE---------------
+
+demouserData = Data()
+
+user_data = {
+    "demouser" : demouserData
+}
+
+#---------------USER CLASS----------------
+
+class User:
+    def __init__(self, username: str) -> None:
+        self.username = username
+        self.data = user_data[username]
+
+#---------------USER PASSWORD/TOKENS----------------
+
+logins = {
+    "demouser" : "tartanhacks"
+}
+
+tokens = {
+    "demouser" : '0ef6a1cba8607c0eadb60631d7c9be6f956d3cfab3f2c30d05276463509a3e0d'
+}
+
+#---------------DICT UPDATING----------------
+
+def add_login(username: str, password: str):
+    logins.update(username, password)
+
+def add_token(username: str, venmo_username: str, venmo_password: str):
+    token = get_token(venmo_username, venmo_password)
+    tokens.update(username, token)
+
+#---------------API CALLS---------------
