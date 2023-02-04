@@ -1,0 +1,39 @@
+from venmo_api import Client
+
+#requests token from api
+def get_token(username: str, password: str) -> str:
+    access_token = Client.get_access_token(
+        username=username, 
+        password=password
+    )
+    return access_token
+
+#fetches client instsance from token
+def get_client(token) -> Client:
+    return Client(access_token=token)
+
+#get id of username from api
+def get_id(client: Client, username: str) -> str:
+    return client.user.get_user_by_username(username)
+
+#use api to perform venmo request
+def request(client: Client, amt: float, disc: str, user: str):
+    client.payment.request_money(amt, disc, user)
+
+#returns list of active requests
+def active_requests(client: Client) -> list[str]:
+    requests = []
+
+    request = client.payment.get_charge_payments()
+    for request in requests:
+      requests.append(request)
+
+    return requests
+
+#checks if request is pending
+def is_request_pending(requests: list[str], index: int) -> bool:
+    return 'status=PaymentStatus.PENDING' in requests[int]
+
+#checks if user hash is in a request
+def is_from_user(requests: list[str], index: int, user_hash: int) -> bool:
+    return user_hash in requests[index]
